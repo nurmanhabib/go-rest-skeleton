@@ -23,6 +23,7 @@ func (r Router) Init() *gin.Engine {
 
 	e := gin.Default()
 	e.Use(middleware.NewJSONResponse(r.conf).Middleware())
+	e.Use(middleware.NewPanic().Middleware())
 
 	handle404(e)
 	handlePing(e, r.conf)
@@ -30,6 +31,7 @@ func (r Router) Init() *gin.Engine {
 
 	// Your routes here
 	// handleAwesome(e)
+	handleUsers(e)
 
 	return e
 }

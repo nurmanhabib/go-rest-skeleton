@@ -12,5 +12,5 @@ func (a App) IsProduction() bool {
 }
 
 func (a App) IsDebugMode() bool {
-	return a.Env != "production" && a.Debug
+	return a.IsProduction() == false && a.Debug
 }

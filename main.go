@@ -9,16 +9,27 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/rollbar/rollbar-go"
+
 	"github.com/joho/godotenv"
 	"github.com/nurmanhabib/go-rest-skeleton/interfaces/routers"
 
-	cmd2 "github.com/nurmanhabib/go-rest-skeleton/interfaces/cmd"
+	"github.com/nurmanhabib/go-rest-skeleton/interfaces/cmd"
 
 	"github.com/nurmanhabib/go-rest-skeleton/config"
 	"github.com/urfave/cli/v2"
 )
 
+func catchError() {
+	if r := recover(); r != nil {
+		rollbar.Critical(r)
+		rollbar.Wait()
+	}
+}
+
 func main() {
+	defer catchError()
+
 	// Check .env file
 	if err := godotenv.Load(); err != nil {
 		log.Println("no .env file provided")
@@ -29,7 +40,12 @@ func main() {
 	timeLoc, _ := time.LoadLocation(conf.App.Timezone)
 	time.Local = timeLoc
 
-	app := cmd2.NewCli()
+	if conf.Rollbar.IsEnabled() {
+		rollbar.SetToken(conf.Rollbar.Token)
+		rollbar.SetEnvironment(conf.Env)
+	}
+
+	app := cmd.NewCli()
 	app.Action = func(c *cli.Context) error {
 		// Init Router
 		router := routers.New(conf).Init()
