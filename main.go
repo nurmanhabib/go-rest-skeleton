@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -32,8 +36,39 @@ func main() {
 
 		// Run app at defined port
 		appPort := conf.App.Port
+		srv := &http.Server{
+			Addr:    ":" + appPort,
+			Handler: router,
+		}
 
-		log.Println(router.Run(":" + appPort))
+		errSrv := make(chan error, 1)
+
+		go func() {
+			errSrv <- srv.ListenAndServe()
+		}()
+
+		shutdownChannel := make(chan os.Signal, 1)
+		signal.Notify(shutdownChannel, syscall.SIGINT, syscall.SIGTERM)
+
+		select {
+		case sig := <-shutdownChannel:
+			log.Println("signal:", sig)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+
+			if err := srv.Shutdown(ctx); err != nil {
+				log.Fatalln("Server forced to shutdown:", err)
+			}
+
+			log.Println("Server shutdown")
+
+		case err := <-errSrv:
+			if err != nil {
+				log.Fatalln("Server error:", err)
+			}
+		}
+
 		return nil
 	}
 
