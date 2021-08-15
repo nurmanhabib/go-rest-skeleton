@@ -3,6 +3,7 @@ package middleware
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/nurmanhabib/go-rest-skeleton/config"
+	"github.com/nurmanhabib/go-rest-skeleton/infrastructure/message/exception"
 	"github.com/nurmanhabib/go-rest-skeleton/pkg/response"
 )
 
@@ -27,10 +28,8 @@ func (r JSONResponse) Middleware() gin.HandlerFunc {
 		c.Errors = c.Errors[:0]
 		message := err.Error()
 
-		if r.Conf.Env == "production" && c.Writer.Status() == 500 {
-			message = "an_error_occurred"
-			response.JSON(c.Writer, response.FailureResponse{Message: message})
-			return
+		if r.Conf.IsProduction() && c.Writer.Status() == 500 {
+			message = exception.ErrorTextInternalServerError.Error()
 		}
 
 		response.JSON(c.Writer, response.FailureResponse{
